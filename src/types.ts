@@ -57,6 +57,7 @@ export interface Project {
 
   // Optional: shrink a "log" file over budget (e.g. move old rows to its archive word for word). Code, not a model.
   compactLog?(file: string): { moved: string[] };
+  keepWhole?(file: string): string[]; // section headings compaction must never touch (an index table everything reads)
   schedule?: { hour: number; tzOffsetMin: number }; // nightly run time; default 23:00 IST
   weekly?(): Promise<string[]>; // optional extra weekly job after the self-review (e.g. a project's own cleanup)
 }

@@ -1,7 +1,7 @@
 // Keeps the brain from bloating the context everything reads. A file over its budget is compacted that night
 // without losing anything: log files by the project's own code, knowledge files by the editor through the
 // gate plus the "nothing lost" check. At most one knowledge file a night.
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Project } from "./types.ts";
 import type { Exam } from "./exam.ts";
@@ -9,16 +9,25 @@ import type { editor } from "./edit.ts";
 import type { versions } from "./versions.ts";
 import { archiveOf } from "./checks.ts";
 
-const TARGET = 0.8;
+const TARGET = 0.8, CHUNK = 40 * 1024;
+// The biggest "## " sections, enough to cover about twice what must go, capped so one editor run fits in time
+// (a whole 150 KB file in one pass hit a 20-minute run limit in Ticket Desk). The rest waits for the next night.
+export function largestSections(text: string, needBytes: number, keepWhole: string[] = []): string[] {
+  const hs = [...text.matchAll(/^## .+$/gm)].filter((m) => !keepWhole.some((k) => m[0].includes(k))).map((m, i, all) => ({ title: m[0], size: (all[i + 1]?.index ?? text.length) - m.index! }));
+  const out: string[] = []; let sum = 0;
+  for (const h of hs.sort((a, b) => b.size - a.size)) { if (sum >= Math.min(needBytes * 2, CHUNK)) break; if (sum + h.size > CHUNK && out.length) continue; out.push(h.title); sum += h.size; }
+  return out;
+}
 const EDIT_SCHEMA = { type: "object", additionalProperties: false, required: ["decision", "reasoning", "changes"], properties: {
   decision: { type: "string", enum: ["compacted", "nothing"] }, reasoning: { type: "string" },
   changes: { type: "array", items: { type: "object", additionalProperties: false, required: ["file", "summary"], properties: { file: { type: "string" }, summary: { type: "string" } } } } } };
 
-const prompt = (p: Project, stage: string, file: string, kb: number, target: number) => {
+const prompt = (p: Project, stage: string, file: string, kb: number, target: number, sections: string[]) => {
   const archive = archiveOf(file);
   return `${p.prompts.context()}
 
-${file} is ${kb} KB, over its size budget. Everything that uses this project's knowledge reads it, so its size costs tokens every time and will eventually stop the exam fitting. Compact it to about ${target} KB **without losing anything a future case needs**. Work section by section, from the largest.
+${file} is ${kb} KB, over its size budget. Everything that uses this project's knowledge reads it, so its size costs tokens every time and will eventually stop the exam fitting. It needs to come down to about ${target} KB **without losing anything a future case needs**. This run, compact ONLY these sections (the largest) and leave every other section exactly as it is; the rest waits for another night:
+${sections.map((h) => `- ${h}`).join("\n")}
 
 Allowed moves:
 1. Fold a section's dated amendments and corrections into its main text so it reads as the current rule, leaving one short dated history line per fold.
@@ -49,7 +58,8 @@ export function compactor(p: Project, ex: Exam, edit: ReturnType<typeof editor>,
     const k = over.find((x) => x.kind === "knowledge");
     if (k) {
       const b = kb(k.name), target = Math.round(k.budgetKb! * TARGET);
-      const g = await edit({ label: `compaction ${k.name}`, compaction: true, schema: EDIT_SCHEMA, prompt: (stage) => prompt(p, stage, k.name, b, target),
+      const sections = largestSections(readFileSync(join(p.liveDir, k.name), "utf8"), (b - target) * 1024, p.keepWhole?.(k.name) ?? []);
+      const g = await edit({ label: `compaction ${k.name}`, compaction: true, schema: EDIT_SCHEMA, prompt: (stage) => prompt(p, stage, k.name, b, target, sections),
         commitMsg: (_d, keep) => keep ? `agent: compaction of ${k.name} (${b} KB, target ${target} KB)` : `compaction attempt on ${k.name}: nothing kept` });
       lines.push(`${k.name}: ${g.kept.length ? `compacted ${b} → ${kb(k.name)} KB` : `not compacted (${g.exam?.summary ?? g.r.structured?.reasoning ?? g.r.error ?? "no change"})`}.`);
       ex.recordGate({ at: Date.now(), label: `Compaction: ${k.name}`, source: "compaction", kept: g.kept.length > 0, summary: g.exam?.summary ?? "", commit: g.commit, rounds: g.rounds });

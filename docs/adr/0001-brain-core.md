@@ -29,7 +29,10 @@ works ... should be a core ... which I can use everywhere I use AI and Claude"*.
    the brain as it was at the last exam.
 5. **The brain keeps itself small.** Size budgets per file; over budget, a log file is compacted by the project's
    code and a knowledge file by the editor through the gate, plus a fixed "nothing lost" check (every id,
-   citation and name must survive in the file or its archive; the archive only grows). Questions capped at 3 per
+   citation and name must survive in the file or its archive; the archive only grows). **A few sections per run**, the
+   largest, up to about 40 KB, never the ones the project marks `keepWhole` (an index table). The first
+   Ticket Desk test compacted a whole 152 KB playbook in one editor run and hit the 20-minute run limit, so nothing
+   was checked or kept; smaller runs also give the second opinion a diff it can actually read. Questions capped at 3 per
    area, the exam asked in batches of 15.
 6. **The weekly self-review is the part that looks for problems**, not just reacts: it reads the project's
    evidence and the brain's own record, names patterns and their cause, fixes knowledge gaps through the gate,
