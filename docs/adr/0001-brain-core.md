@@ -1,6 +1,6 @@
 # ADR-0001: brain-core, a self-improving knowledge brain pulled out of Ticket Desk
 
-**Status:** In progress (the core is written; Ticket Desk is being moved onto it)
+**Status:** Experiment. The core is written and builds, but no project runs it: on 28/09/2026 Pratham decided Ticket Desk keeps its own brain, and brain-core stays a separate repo to try elsewhere later. Untested beyond building: nothing in it has run for real.
 **Date:** 2026-09-28
 
 ## Context

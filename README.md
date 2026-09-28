@@ -1,5 +1,8 @@
 # brain-core
 
+> **Status: experiment.** Written and built, not yet run by any project. Ticket Desk, where the idea came from,
+> keeps its own built-in brain (decided 28/09/2026). Use it as a starting point, not as a tested library.
+
 A self-improving knowledge brain for tools built on Claude. Your project keeps its knowledge in markdown files
 (a playbook, a runbook, known bugs, business rules). brain-core keeps those files correct and small on its own:
 it lets agents edit them, **proves every edit against cases already solved right before keeping it**, re-checks
