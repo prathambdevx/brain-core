@@ -1,0 +1,8 @@
+{
+  "name": "brain-core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A self-improving knowledge brain for Claude-powered tools: gated edits, an exam of proven cases, nightly regression and revert, compaction, self-review, health, research and tested proposals.",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" }
+}
